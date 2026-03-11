@@ -106,6 +106,38 @@ def is_playable(frets: tuple, max_stretch: int = 4) -> bool:
     return max(pressed) - min(pressed) <= max_stretch
 
 
+def calculate_ease_score(frets: list) -> dict:
+    """
+    Calcula el puntaje de facilidad de una posición de acorde.
+    
+    Criterios:
+    - Cuerdas al aire (traste 0): +10 puntos por cada una
+    - Extensión de trastes: Penalización basada en la distancia entre trastes
+    
+    Returns:
+        dict con 'score', 'open_strings', 'fret_span'
+    """
+    open_strings = sum(1 for f in frets if f == 0)
+    pressed = [f for f in frets if f > 0]
+    
+    if not pressed:
+        fret_span = 0
+    else:
+        fret_span = max(pressed) - min(pressed)
+    
+    # Puntuación: más cuerdas al aire es mejor, menor extensión es mejor
+    # Base de 100 puntos
+    # +10 por cada cuerda al aire
+    # -15 por cada traste de extensión
+    score = 100 + (open_strings * 10) - (fret_span * 15)
+    
+    return {
+        'score': score,
+        'open_strings': open_strings,
+        'fret_span': fret_span
+    }
+
+
 def get_chord_notes(root: str, chord_type: str) -> set:
     """Obtiene el conjunto de notas que forman un acorde."""
     root_normalized = normalize_note_name(root)
@@ -205,18 +237,22 @@ def find_chord_positions(
             played_notes.append(note_name)
         
         if matches_chord(played_notes, root_normalized, chord_type):
+            ease_info = calculate_ease_score(list(frets))
             positions.append({
                 'name': f"{root_normalized} {chord_type}",
                 'root': root_normalized,
                 'type': chord_type,
                 'frets': list(frets),
-                'notes': played_notes
+                'notes': played_notes,
+                'ease_score': ease_info['score'],
+                'open_strings': ease_info['open_strings'],
+                'fret_span': ease_info['fret_span']
             })
-            
-            if len(positions) >= limit:
-                return positions
     
-    return positions
+    # Ordenar por facilidad (mayor puntaje primero)
+    positions.sort(key=lambda x: x['ease_score'], reverse=True)
+    
+    return positions[:limit]
 
 
 def generate_chords(
@@ -264,27 +300,21 @@ def generate_chords(
     
     for root in roots:
         for chord_type in chord_types:
-            remaining = limit - len(all_positions)
-            if remaining <= 0:
-                break
-            
+            # Buscar todas las posiciones posibles para luego ordenar globalmente
             positions = find_chord_positions(
                 tuning_midi,
                 max_frets,
                 root,
                 chord_type,
-                limit=remaining,
+                limit=50,  # Buscar más para tener opciones de ordenamiento
                 min_fret=min_fret,
                 max_fret=max_fret,
                 string_fret_filter=string_fret_filter
             )
             all_positions.extend(positions)
-            
-            if len(all_positions) >= limit:
-                break
-        
-        if len(all_positions) >= limit:
-            break
+    
+    # Ordenar todos los resultados por facilidad (mayor puntaje primero)
+    all_positions.sort(key=lambda x: x['ease_score'], reverse=True)
     
     return all_positions[:limit]
 

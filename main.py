@@ -161,6 +161,8 @@ def main(page: ft.Page):
         """Crea una tarjeta visual para un acorde en formato tablatura."""
         frets = chord['frets']
         notes = chord['notes']
+        open_strings = chord.get('open_strings', 0)
+        fret_span = chord.get('fret_span', 0)
         
         # Formato tablatura: cuerda 1 (aguda) arriba, cuerda 4 (grave) abajo
         # El array viene [cuerda4, cuerda3, cuerda2, cuerda1], invertimos para mostrar
@@ -171,6 +173,8 @@ def main(page: ft.Page):
         # Crear filas de tablatura con fuente monoespaciada
         tab_rows = []
         for i, (string_num, fret, note) in enumerate(zip(string_names, frets_reversed, notes_reversed)):
+            # Destacar cuerdas al aire con color verde
+            fret_color = ft.Colors.GREEN if fret == 0 else ft.Colors.PRIMARY
             tab_rows.append(
                 ft.Row(
                     [
@@ -185,7 +189,7 @@ def main(page: ft.Page):
                             f"──{fret}──",
                             size=14,
                             font_family="Consolas",
-                            color=ft.Colors.PRIMARY,
+                            color=fret_color,
                         ),
                         ft.Text(
                             f" ({note})",
@@ -198,6 +202,27 @@ def main(page: ft.Page):
                 )
             )
 
+        # Crear etiqueta de facilidad
+        ease_label = []
+        if open_strings > 0:
+            ease_label.append(f"{open_strings} al aire")
+        if fret_span > 0:
+            ease_label.append(f"{fret_span} trastes")
+        else:
+            ease_label.append("sin extensión")
+        
+        ease_text = " · ".join(ease_label)
+        
+        # Determinar color del indicador según facilidad
+        if open_strings >= 3:
+            ease_color = ft.Colors.GREEN
+        elif open_strings >= 2 or fret_span <= 1:
+            ease_color = ft.Colors.LIGHT_GREEN
+        elif fret_span <= 2:
+            ease_color = ft.Colors.YELLOW
+        else:
+            ease_color = ft.Colors.ORANGE
+
         return ft.Card(
             content=ft.Container(
                 content=ft.Column(
@@ -208,7 +233,15 @@ def main(page: ft.Page):
                             weight=ft.FontWeight.BOLD,
                             color=ft.Colors.PRIMARY,
                         ),
-                        ft.Divider(height=10),
+                        ft.Container(
+                            content=ft.Text(
+                                ease_text,
+                                size=11,
+                                color=ease_color,
+                            ),
+                            padding=ft.Padding.only(bottom=5),
+                        ),
+                        ft.Divider(height=5),
                         *tab_rows,
                     ],
                     spacing=2,
