@@ -74,6 +74,47 @@ def main(page: ft.Page):
         ],
     )
 
+    # Filtro de rango de trastes
+    min_fret_field = ft.TextField(
+        label="Traste Mín",
+        value="0",
+        width=100,
+        text_align=ft.TextAlign.CENTER,
+        keyboard_type=ft.KeyboardType.NUMBER,
+    )
+
+    max_fret_field = ft.TextField(
+        label="Traste Máx",
+        value="",
+        hint_text="Todos",
+        width=100,
+        text_align=ft.TextAlign.CENTER,
+        keyboard_type=ft.KeyboardType.NUMBER,
+    )
+
+    # Filtro de cuerda específica
+    string_filter_dropdown = ft.Dropdown(
+        label="Cuerda",
+        width=120,
+        value="Ninguna",
+        options=[
+            ft.dropdown.Option("Ninguna"),
+            ft.dropdown.Option("1"),
+            ft.dropdown.Option("2"),
+            ft.dropdown.Option("3"),
+            ft.dropdown.Option("4"),
+        ],
+    )
+
+    string_fret_field = ft.TextField(
+        label="Traste fijo",
+        value="",
+        hint_text="0-14",
+        width=100,
+        text_align=ft.TextAlign.CENTER,
+        keyboard_type=ft.KeyboardType.NUMBER,
+    )
+
     # Contenedor de resultados
     results_grid = ft.GridView(
         expand=True,
@@ -195,12 +236,37 @@ def main(page: ft.Page):
             root_filter = None if root_dropdown.value == "Cualquiera" else root_dropdown.value
             type_filter = None if type_dropdown.value == "Cualquiera" else type_dropdown.value
 
+            # Parsear rango de trastes
+            min_fret = int(min_fret_field.value) if min_fret_field.value.strip() else 0
+            max_fret = int(max_fret_field.value) if max_fret_field.value.strip() else None
+
+            if min_fret < 0:
+                raise ValueError("El traste mínimo no puede ser negativo")
+            if max_fret is not None and max_fret > max_frets:
+                raise ValueError(f"El traste máximo no puede ser mayor a {max_frets}")
+            if max_fret is not None and min_fret > max_fret:
+                raise ValueError("El traste mínimo no puede ser mayor al máximo")
+
+            # Parsear filtro de cuerda específica
+            string_fret_filter = None
+            if string_filter_dropdown.value != "Ninguna" and string_fret_field.value.strip():
+                string_num = int(string_filter_dropdown.value)
+                fret_value = int(string_fret_field.value)
+                if fret_value < 0 or fret_value > max_frets:
+                    raise ValueError(f"El traste fijo debe estar entre 0 y {max_frets}")
+                # Convertir número de cuerda a índice (Cuerda 4=0, 3=1, 2=2, 1=3)
+                string_index = 4 - string_num
+                string_fret_filter = {string_index: fret_value}
+
             chords = generate_chords(
                 tuning=tuning,
                 max_frets=max_frets,
                 root_filter=root_filter,
                 type_filter=type_filter,
-                limit=10
+                limit=10,
+                min_fret=min_fret,
+                max_fret=max_fret,
+                string_fret_filter=string_fret_filter
             )
 
             results_grid.controls.clear()
@@ -288,6 +354,28 @@ def main(page: ft.Page):
                             ),
                             ft.Row(
                                 [root_dropdown, type_dropdown],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                                wrap=True,
+                            ),
+                            ft.Divider(height=15),
+                            ft.Text(
+                                "Rango de Trastes",
+                                size=14,
+                                color=ft.Colors.SECONDARY,
+                            ),
+                            ft.Row(
+                                [min_fret_field, max_fret_field],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                                wrap=True,
+                            ),
+                            ft.Divider(height=15),
+                            ft.Text(
+                                "Fijar Traste en Cuerda",
+                                size=14,
+                                color=ft.Colors.SECONDARY,
+                            ),
+                            ft.Row(
+                                [string_filter_dropdown, string_fret_field],
                                 alignment=ft.MainAxisAlignment.CENTER,
                                 wrap=True,
                             ),

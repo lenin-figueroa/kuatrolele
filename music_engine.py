@@ -131,15 +131,38 @@ def find_chord_positions(
     max_frets: int,
     root: str,
     chord_type: str,
-    limit: int = 10
+    limit: int = 10,
+    min_fret: int = 0,
+    max_fret: Optional[int] = None,
+    string_fret_filter: Optional[dict] = None
 ) -> list:
     """
     Encuentra posiciones válidas para un acorde específico.
+    
+    Args:
+        tuning_midi: Lista de notas MIDI de la afinación
+        max_frets: Número máximo de trastes del instrumento
+        root: Nota raíz del acorde
+        chord_type: Tipo de acorde
+        limit: Máximo de posiciones a retornar
+        min_fret: Traste mínimo del rango de búsqueda
+        max_fret: Traste máximo del rango de búsqueda (None = max_frets)
+        string_fret_filter: Diccionario {índice_cuerda: traste_requerido}
     """
     positions = []
     root_normalized = normalize_note_name(root)
     
-    fret_ranges = [range(max_frets + 1) for _ in range(4)]
+    if max_fret is None:
+        max_fret = max_frets
+    
+    # Crear rangos de trastes para cada cuerda
+    fret_ranges = []
+    for string_idx in range(4):
+        if string_fret_filter and string_idx in string_fret_filter:
+            # Si hay filtro para esta cuerda, solo ese traste
+            fret_ranges.append([string_fret_filter[string_idx]])
+        else:
+            fret_ranges.append(range(min_fret, max_fret + 1))
     
     for frets in product(*fret_ranges):
         if not is_playable(frets):
@@ -171,7 +194,10 @@ def generate_chords(
     max_frets: int,
     root_filter: Optional[str] = None,
     type_filter: Optional[str] = None,
-    limit: int = 10
+    limit: int = 10,
+    min_fret: int = 0,
+    max_fret: Optional[int] = None,
+    string_fret_filter: Optional[dict] = None
 ) -> list:
     """
     Función principal para generar acordes.
@@ -179,10 +205,14 @@ def generate_chords(
     Args:
         tuning: Lista de notas de afinación ordenadas de grave a aguda
                 [Cuerda4, Cuerda3, Cuerda2, Cuerda1] (ej: ["F3", "A#3", "D4", "G4"])
-        max_frets: Número máximo de trastes
+        max_frets: Número máximo de trastes del instrumento
         root_filter: Filtro de nota raíz (None = todas)
         type_filter: Filtro de tipo de acorde (None = Mayor y Menor)
         limit: Número máximo de resultados
+        min_fret: Traste mínimo del rango de búsqueda
+        max_fret: Traste máximo del rango de búsqueda (None = max_frets)
+        string_fret_filter: Diccionario {índice_cuerda: traste_requerido}
+                           donde índice 0=Cuerda4, 1=Cuerda3, 2=Cuerda2, 3=Cuerda1
     
     Returns:
         Lista de diccionarios con información de cada acorde encontrado.
@@ -213,7 +243,10 @@ def generate_chords(
                 max_frets,
                 root,
                 chord_type,
-                limit=remaining
+                limit=remaining,
+                min_fret=min_fret,
+                max_fret=max_fret,
+                string_fret_filter=string_fret_filter
             )
             all_positions.extend(positions)
             
