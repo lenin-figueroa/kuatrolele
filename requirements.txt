@@ -1,0 +1,4 @@
+# Dependencias principales del proyecto kuatrolele
+# Python 3.12+
+
+flet==0.82.2
