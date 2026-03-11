@@ -17,12 +17,37 @@ ENHARMONIC_MAP = {
 }
 
 # Intervalos de acordes (semitonos desde la raíz)
+# Formato: (intervalos, notas_requeridas_indices)
+# notas_requeridas_indices indica qué posiciones del array de intervalos son obligatorias
 CHORD_TYPES = {
     'Mayor': [0, 4, 7],
     'Menor': [0, 3, 7],
     '7ma': [0, 4, 7, 10],
     'Mayor 7': [0, 4, 7, 11],
     'Menor 7': [0, 3, 7, 10],
+    'dim': [0, 3, 6],
+    'aug': [0, 4, 8],
+    'sus2': [0, 2, 7],
+    'sus4': [0, 5, 7],
+    'add9': [0, 4, 7, 14],
+    '7sus4': [0, 5, 7, 10],
+}
+
+# Notas requeridas para cada tipo de acorde (índices de CHORD_TYPES[tipo])
+# Por defecto: raíz (0) + característica (1) son requeridas
+# Para acordes extendidos, se requiere también la extensión
+REQUIRED_TONES = {
+    'Mayor': [0, 1],        # Raíz + 3ra mayor
+    'Menor': [0, 1],        # Raíz + 3ra menor
+    '7ma': [0, 1, 3],       # Raíz + 3ra + 7ma
+    'Mayor 7': [0, 1, 3],   # Raíz + 3ra + 7ma mayor
+    'Menor 7': [0, 1, 3],   # Raíz + 3ra + 7ma
+    'dim': [0, 1, 2],       # Raíz + 3ra menor + 5ta disminuida
+    'aug': [0, 1, 2],       # Raíz + 3ra + 5ta aumentada
+    'sus2': [0, 1],         # Raíz + 2da suspendida
+    'sus4': [0, 1],         # Raíz + 4ta suspendida
+    'add9': [0, 1, 3],      # Raíz + 3ra + 9na (la 9na es lo que lo hace add9)
+    '7sus4': [0, 1, 3],     # Raíz + 4ta + 7ma
 }
 
 # Tipos básicos para búsqueda sin filtros
@@ -97,19 +122,24 @@ def get_chord_notes(root: str, chord_type: str) -> set:
 
 def contains_required_tones(played_notes: list, root: str, chord_type: str) -> bool:
     """
-    Verifica que las notas tocadas contengan al menos la raíz y la tercera del acorde.
+    Verifica que las notas tocadas contengan todas las notas requeridas del acorde.
+    Las notas requeridas varían según el tipo de acorde.
     """
     root_normalized = normalize_note_name(root)
     root_index = CHROMATIC_SCALE.index(root_normalized)
     intervals = CHORD_TYPES[chord_type]
-    
-    third_interval = intervals[1]
-    third_index = (root_index + third_interval) % 12
-    third_note = CHROMATIC_SCALE[third_index]
+    required_indices = REQUIRED_TONES.get(chord_type, [0, 1])
     
     played_note_names = set(played_notes)
     
-    return root_normalized in played_note_names and third_note in played_note_names
+    for req_idx in required_indices:
+        interval = intervals[req_idx]
+        note_index = (root_index + interval) % 12
+        required_note = CHROMATIC_SCALE[note_index]
+        if required_note not in played_note_names:
+            return False
+    
+    return True
 
 
 def matches_chord(played_notes: list, root: str, chord_type: str) -> bool:
