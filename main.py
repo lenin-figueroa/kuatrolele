@@ -19,30 +19,30 @@ def main(page: ft.Page):
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
 
-    # Campos de afinación
+    # Campos de afinación (Cuerda 4 = más grave, Cuerda 1 = más aguda)
     string_fields = [
         ft.TextField(
-            label="Cuerda 1",
+            label="Cuerda 4",
             value="F3",
-            width=100,
-            text_align=ft.TextAlign.CENTER,
-        ),
-        ft.TextField(
-            label="Cuerda 2",
-            value="A#3",
-            width=100,
+            width=120,
             text_align=ft.TextAlign.CENTER,
         ),
         ft.TextField(
             label="Cuerda 3",
-            value="D4",
-            width=100,
+            value="A#3",
+            width=120,
             text_align=ft.TextAlign.CENTER,
         ),
         ft.TextField(
-            label="Cuerda 4",
+            label="Cuerda 2",
+            value="D4",
+            width=120,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        ft.TextField(
+            label="Cuerda 1",
             value="G4",
-            width=100,
+            width=120,
             text_align=ft.TextAlign.CENTER,
         ),
     ]
@@ -117,14 +117,43 @@ def main(page: ft.Page):
         page.update()
 
     def create_chord_card(chord: dict) -> ft.Card:
-        """Crea una tarjeta visual para un acorde."""
-        frets_text = []
-        for i, fret in enumerate(chord['frets']):
-            frets_text.append(
-                ft.Text(
-                    f"Cuerda {i + 1}: Traste {fret}",
-                    size=13,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
+        """Crea una tarjeta visual para un acorde en formato tablatura."""
+        frets = chord['frets']
+        notes = chord['notes']
+        
+        # Formato tablatura: cuerda 1 (aguda) arriba, cuerda 4 (grave) abajo
+        # El array viene [cuerda4, cuerda3, cuerda2, cuerda1], invertimos para mostrar
+        string_names = ["1", "2", "3", "4"]
+        frets_reversed = list(reversed(frets))
+        notes_reversed = list(reversed(notes))
+        
+        # Crear filas de tablatura con fuente monoespaciada
+        tab_rows = []
+        for i, (string_num, fret, note) in enumerate(zip(string_names, frets_reversed, notes_reversed)):
+            tab_rows.append(
+                ft.Row(
+                    [
+                        ft.Text(
+                            f"{string_num}│",
+                            size=14,
+                            weight=ft.FontWeight.BOLD,
+                            font_family="Consolas",
+                            color=ft.Colors.SECONDARY,
+                        ),
+                        ft.Text(
+                            f"──{fret}──",
+                            size=14,
+                            font_family="Consolas",
+                            color=ft.Colors.PRIMARY,
+                        ),
+                        ft.Text(
+                            f" ({note})",
+                            size=12,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
+                            italic=True,
+                        ),
+                    ],
+                    spacing=0,
                 )
             )
 
@@ -138,16 +167,10 @@ def main(page: ft.Page):
                             weight=ft.FontWeight.BOLD,
                             color=ft.Colors.PRIMARY,
                         ),
-                        ft.Text(
-                            f"Notas: {', '.join(chord['notes'])}",
-                            size=12,
-                            color=ft.Colors.SECONDARY,
-                            italic=True,
-                        ),
                         ft.Divider(height=10),
-                        *frets_text,
+                        *tab_rows,
                     ],
-                    spacing=5,
+                    spacing=2,
                 ),
                 padding=15,
             ),

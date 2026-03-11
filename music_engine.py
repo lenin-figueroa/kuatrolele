@@ -177,14 +177,16 @@ def generate_chords(
     Función principal para generar acordes.
     
     Args:
-        tuning: Lista de notas de afinación (ej: ["F3", "A#3", "D4", "G4"])
+        tuning: Lista de notas de afinación ordenadas de grave a aguda
+                [Cuerda4, Cuerda3, Cuerda2, Cuerda1] (ej: ["F3", "A#3", "D4", "G4"])
         max_frets: Número máximo de trastes
         root_filter: Filtro de nota raíz (None = todas)
         type_filter: Filtro de tipo de acorde (None = Mayor y Menor)
         limit: Número máximo de resultados
     
     Returns:
-        Lista de diccionarios con información de cada acorde encontrado
+        Lista de diccionarios con información de cada acorde encontrado.
+        Los arrays 'frets' y 'notes' están en orden [Cuerda4, Cuerda3, Cuerda2, Cuerda1]
     """
     tuning_midi = [parse_note(note) for note in tuning]
     
