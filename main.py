@@ -163,6 +163,11 @@ def main(page: ft.Page):
         notes = chord['notes']
         open_strings = chord.get('open_strings', 0)
         fret_span = chord.get('fret_span', 0)
+        inversion_name = chord.get('inversion_name', 'Fundamental')
+        bass_note = chord.get('bass_note', '')
+        inversion = chord.get('inversion', 0)
+        # Índice de la cuerda que tiene el bajo real (en el array original)
+        bass_string_index = chord.get('bass_string_index', 0)
         
         # Formato tablatura: cuerda 1 (aguda) arriba, cuerda 4 (grave) abajo
         # El array viene [cuerda4, cuerda3, cuerda2, cuerda1], invertimos para mostrar
@@ -170,11 +175,20 @@ def main(page: ft.Page):
         frets_reversed = list(reversed(frets))
         notes_reversed = list(reversed(notes))
         
+        # Convertir bass_string_index al índice en el array invertido
+        # Original: [c4, c3, c2, c1] -> Invertido: [c1, c2, c3, c4]
+        # Original idx 0 (c4) -> Invertido idx 3
+        # Original idx 3 (c1) -> Invertido idx 0
+        bass_display_index = 3 - bass_string_index
+        
         # Crear filas de tablatura con fuente monoespaciada
         tab_rows = []
         for i, (string_num, fret, note) in enumerate(zip(string_names, frets_reversed, notes_reversed)):
             # Destacar cuerdas al aire con color verde
             fret_color = ft.Colors.GREEN if fret == 0 else ft.Colors.PRIMARY
+            # Verificar si esta cuerda es el bajo real
+            is_bass = (i == bass_display_index)
+            note_display = f" ({note})" if not is_bass else f" ({note}) ← bajo"
             tab_rows.append(
                 ft.Row(
                     [
@@ -192,10 +206,11 @@ def main(page: ft.Page):
                             color=fret_color,
                         ),
                         ft.Text(
-                            f" ({note})",
+                            note_display,
                             size=12,
-                            color=ft.Colors.ON_SURFACE_VARIANT,
+                            color=ft.Colors.TERTIARY if is_bass else ft.Colors.ON_SURFACE_VARIANT,
                             italic=True,
+                            weight=ft.FontWeight.BOLD if is_bass else ft.FontWeight.NORMAL,
                         ),
                     ],
                     spacing=0,
@@ -223,6 +238,12 @@ def main(page: ft.Page):
         else:
             ease_color = ft.Colors.ORANGE
 
+        # Color de inversión
+        if inversion == 0:
+            inv_color = ft.Colors.BLUE_200
+        else:
+            inv_color = ft.Colors.PURPLE_200
+
         return ft.Card(
             content=ft.Container(
                 content=ft.Column(
@@ -233,13 +254,27 @@ def main(page: ft.Page):
                             weight=ft.FontWeight.BOLD,
                             color=ft.Colors.PRIMARY,
                         ),
-                        ft.Container(
-                            content=ft.Text(
-                                ease_text,
-                                size=11,
-                                color=ease_color,
-                            ),
-                            padding=ft.Padding.only(bottom=5),
+                        # Fila con inversión y facilidad
+                        ft.Row(
+                            [
+                                ft.Container(
+                                    content=ft.Text(
+                                        inversion_name,
+                                        size=10,
+                                        color=ft.Colors.ON_SECONDARY_CONTAINER,
+                                        weight=ft.FontWeight.W_500,
+                                    ),
+                                    bgcolor=inv_color,
+                                    padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+                                    border_radius=4,
+                                ),
+                                ft.Text(
+                                    ease_text,
+                                    size=10,
+                                    color=ease_color,
+                                ),
+                            ],
+                            spacing=8,
                         ),
                         ft.Divider(height=5),
                         *tab_rows,

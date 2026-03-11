@@ -152,6 +152,90 @@ def get_chord_notes(root: str, chord_type: str) -> set:
     return chord_notes
 
 
+def get_chord_notes_ordered(root: str, chord_type: str) -> list:
+    """
+    Obtiene las notas del acorde en orden de intervalos.
+    Returns lista de tuplas: [(nota, nombre_grado), ...]
+    """
+    root_normalized = normalize_note_name(root)
+    root_index = CHROMATIC_SCALE.index(root_normalized)
+    intervals = CHORD_TYPES[chord_type]
+    
+    # Nombres de los grados según la posición en el acorde
+    degree_names = {
+        0: 'Raíz',
+        1: '3ra',      # Puede ser 2da en sus2, 4ta en sus4
+        2: '5ta',      # Puede ser 6ta, 7ma, etc.
+        3: '7ma',      # Para acordes de séptima
+    }
+    
+    # Nombres especiales para acordes suspendidos
+    special_degrees = {
+        'sus2': {1: '2da'},
+        'sus4': {1: '4ta'},
+        '7sus4': {1: '4ta'},
+    }
+    
+    notes = []
+    for i, interval in enumerate(intervals):
+        note_index = (root_index + interval) % 12
+        note = CHROMATIC_SCALE[note_index]
+        
+        # Obtener nombre del grado
+        if chord_type in special_degrees and i in special_degrees[chord_type]:
+            degree = special_degrees[chord_type][i]
+        else:
+            degree = degree_names.get(i, f'ext{i}')
+        
+        notes.append((note, degree))
+    
+    return notes
+
+
+def get_inversion(bass_note: str, root: str, chord_type: str) -> dict:
+    """
+    Determina la inversión del acorde según la nota del bajo.
+    
+    Args:
+        bass_note: Nota más grave del acorde (la del bajo)
+        root: Raíz del acorde
+        chord_type: Tipo de acorde
+    
+    Returns:
+        dict con 'inversion' (número), 'name' (nombre), 'bass_degree' (grado en el bajo)
+    """
+    chord_notes = get_chord_notes_ordered(root, chord_type)
+    bass_normalized = normalize_note_name(bass_note)
+    
+    # Buscar qué grado está en el bajo
+    for i, (note, degree) in enumerate(chord_notes):
+        if note == bass_normalized:
+            if i == 0:
+                return {
+                    'inversion': 0,
+                    'name': 'Fundamental',
+                    'bass_degree': degree
+                }
+            else:
+                inversion_names = {
+                    1: '1ra inversión',
+                    2: '2da inversión',
+                    3: '3ra inversión',
+                }
+                return {
+                    'inversion': i,
+                    'name': inversion_names.get(i, f'{i}ta inversión'),
+                    'bass_degree': degree
+                }
+    
+    # Si no se encuentra (no debería pasar), retornar fundamental
+    return {
+        'inversion': 0,
+        'name': 'Fundamental',
+        'bass_degree': 'Raíz'
+    }
+
+
 def contains_required_tones(played_notes: list, root: str, chord_type: str) -> bool:
     """
     Verifica que las notas tocadas contengan todas las notas requeridas del acorde.
@@ -231,22 +315,38 @@ def find_chord_positions(
             continue
         
         played_notes = []
+        played_midi = []
         for i, fret in enumerate(frets):
             midi_note = get_fret_note(tuning_midi[i], fret)
             note_name = midi_to_note_name(midi_note)
             played_notes.append(note_name)
+            played_midi.append(midi_note)
         
         if matches_chord(played_notes, root_normalized, chord_type):
             ease_info = calculate_ease_score(list(frets))
+            
+            # Encontrar el bajo REAL (la nota MIDI más grave)
+            min_midi = min(played_midi)
+            bass_string_index = played_midi.index(min_midi)
+            bass_note = played_notes[bass_string_index]
+            
+            inversion_info = get_inversion(bass_note, root_normalized, chord_type)
+            
             positions.append({
                 'name': f"{root_normalized} {chord_type}",
                 'root': root_normalized,
                 'type': chord_type,
                 'frets': list(frets),
                 'notes': played_notes,
+                'midi_notes': played_midi,
                 'ease_score': ease_info['score'],
                 'open_strings': ease_info['open_strings'],
-                'fret_span': ease_info['fret_span']
+                'fret_span': ease_info['fret_span'],
+                'bass_note': bass_note,
+                'bass_string_index': bass_string_index,
+                'inversion': inversion_info['inversion'],
+                'inversion_name': inversion_info['name'],
+                'bass_degree': inversion_info['bass_degree']
             })
     
     # Ordenar por facilidad (mayor puntaje primero)
