@@ -74,24 +74,6 @@ def main(page: ft.Page):
         ],
     )
 
-    # Filtro de rango de trastes
-    min_fret_field = ft.TextField(
-        label="Traste Mín",
-        value="0",
-        width=100,
-        text_align=ft.TextAlign.CENTER,
-        keyboard_type=ft.KeyboardType.NUMBER,
-    )
-
-    max_fret_field = ft.TextField(
-        label="Traste Máx",
-        value="",
-        hint_text="Todos",
-        width=100,
-        text_align=ft.TextAlign.CENTER,
-        keyboard_type=ft.KeyboardType.NUMBER,
-    )
-
     # Filtro de cuerda específica
     string_filter_dropdown = ft.Dropdown(
         label="Cuerda",
@@ -304,17 +286,6 @@ def main(page: ft.Page):
             root_filter = None if root_dropdown.value == "Cualquiera" else root_dropdown.value
             type_filter = None if type_dropdown.value == "Cualquiera" else type_dropdown.value
 
-            # Parsear rango de trastes
-            min_fret = int(min_fret_field.value) if min_fret_field.value.strip() else 0
-            max_fret = int(max_fret_field.value) if max_fret_field.value.strip() else None
-
-            if min_fret < 0:
-                raise ValueError("El traste mínimo no puede ser negativo")
-            if max_fret is not None and max_fret > max_frets:
-                raise ValueError(f"El traste máximo no puede ser mayor a {max_frets}")
-            if max_fret is not None and min_fret > max_fret:
-                raise ValueError("El traste mínimo no puede ser mayor al máximo")
-
             # Parsear filtro de cuerda específica
             string_fret_filter = None
             if string_filter_dropdown.value != "Ninguna" and string_fret_field.value.strip():
@@ -332,8 +303,6 @@ def main(page: ft.Page):
                 root_filter=root_filter,
                 type_filter=type_filter,
                 limit=10,
-                min_fret=min_fret,
-                max_fret=max_fret,
                 string_fret_filter=string_fret_filter
             )
 
@@ -422,17 +391,6 @@ def main(page: ft.Page):
                             ),
                             ft.Row(
                                 [root_dropdown, type_dropdown],
-                                alignment=ft.MainAxisAlignment.CENTER,
-                                wrap=True,
-                            ),
-                            ft.Divider(height=15),
-                            ft.Text(
-                                "Rango de Trastes",
-                                size=14,
-                                color=ft.Colors.SECONDARY,
-                            ),
-                            ft.Row(
-                                [min_fret_field, max_fret_field],
                                 alignment=ft.MainAxisAlignment.CENTER,
                                 wrap=True,
                             ),

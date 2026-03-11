@@ -95,10 +95,13 @@ def get_fret_note(open_string_midi: int, fret: int) -> int:
     return open_string_midi + fret
 
 
-def is_playable(frets: tuple, max_stretch: int = 4) -> bool:
+def is_playable(frets: tuple, max_stretch: int = 3) -> bool:
     """
     Verifica si una posición de acordes es anatómicamente ejecutable.
     La distancia entre el traste más bajo (>0) y el más alto no debe exceder max_stretch.
+    
+    Con max_stretch=3, se permiten acordes que cubren hasta 4 trastes físicos
+    (ej: trastes 2,3,4,5 -> diferencia de 3).
     """
     pressed = [f for f in frets if f > 0]
     if not pressed:
@@ -115,7 +118,7 @@ def calculate_ease_score(frets: list) -> dict:
     - Extensión de trastes: Penalización basada en la distancia entre trastes
     
     Returns:
-        dict con 'score', 'open_strings', 'fret_span'
+        dict con 'score', 'open_strings', 'fret_span' (trastes físicos abarcados)
     """
     open_strings = sum(1 for f in frets if f == 0)
     pressed = [f for f in frets if f > 0]
@@ -123,7 +126,9 @@ def calculate_ease_score(frets: list) -> dict:
     if not pressed:
         fret_span = 0
     else:
-        fret_span = max(pressed) - min(pressed)
+        # Trastes físicos abarcados = max - min + 1
+        # Ej: trastes 2,3,5 -> 5-2+1 = 4 trastes físicos
+        fret_span = max(pressed) - min(pressed) + 1
     
     # Puntuación: más cuerdas al aire es mejor, menor extensión es mejor
     # Base de 100 puntos
