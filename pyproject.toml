@@ -1,0 +1,25 @@
+[project]
+name = "kuatrolele"
+version = "1.0.0"
+description = "Generador de Acordes para Instrumentos de 4 Cuerdas"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Lenin" }]
+dependencies = [
+    "flet>=0.82.0"
+]
+
+[tool.flet]
+org = "com.kuatrolele"
+product = "Kuatrolele"
+company = "Kuatrolele"
+copyright = "Copyright © 2026 Kuatrolele"
+build_number = 1
+
+[tool.flet.app]
+path = "src"
+module = "main"
+
+[tool.flet.splash]
+color = "#1a1a2e"
+dark_color = "#1a1a2e"

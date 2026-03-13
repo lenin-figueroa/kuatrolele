@@ -97,19 +97,16 @@ def main(page: ft.Page):
         keyboard_type=ft.KeyboardType.NUMBER,
     )
 
-    # Contenedor de resultados
-    results_grid = ft.GridView(
-        expand=True,
-        runs_count=3,
-        max_extent=250,
-        child_aspect_ratio=1.2,
-        spacing=10,
-        run_spacing=10,
+    # Contenedor de resultados: ResponsiveRow para columnas según ancho de pantalla.
+    # Móvil (xs): 1 columna. Tablet (sm): 2. Desktop (md+): 3. Cada tarjeta altura natural.
+    results_grid = ft.ResponsiveRow(
+        controls=[],
+        spacing=12,
+        run_spacing=12,
     )
 
     results_container = ft.Container(
         content=results_grid,
-        height=400,
         border=ft.Border.all(1, ft.Colors.OUTLINE),
         border_radius=10,
         padding=10,
@@ -308,7 +305,19 @@ def main(page: ft.Page):
 
             results_grid.controls.clear()
             for chord in chords:
-                results_grid.controls.append(create_chord_card(chord))
+                card = create_chord_card(chord)
+                results_grid.controls.append(
+                    ft.Container(
+                        content=card,
+                        col={
+                            ft.ResponsiveRowBreakpoint.XS: 12,   # móvil: 1 columna
+                            ft.ResponsiveRowBreakpoint.SM: 6,    # tablet: 2 columnas
+                            ft.ResponsiveRowBreakpoint.MD: 4,    # desktop: 3 columnas
+                            ft.ResponsiveRowBreakpoint.LG: 4,
+                            ft.ResponsiveRowBreakpoint.XL: 3,    # pantalla grande: 4 columnas
+                        },
+                    )
+                )
 
             if chords:
                 results_count.value = f"Se encontraron {len(chords)} acordes"
