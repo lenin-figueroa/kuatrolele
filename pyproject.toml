@@ -14,7 +14,7 @@ org = "com.kuatrolele"
 product = "Kuatrolele"
 company = "Kuatrolele"
 copyright = "Copyright © 2026 Kuatrolele"
-build_number = 1
+build_number = 2
 
 [tool.flet.app]
 path = "src"

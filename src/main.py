@@ -116,6 +116,27 @@ def main(page: ft.Page):
     loading_indicator = ft.ProgressRing(visible=False, width=20, height=20)
     results_count = ft.Text("", size=14, color=ft.Colors.SECONDARY)
 
+    # Paginación: lista de todos los acordes y página actual
+    all_chords_list = []
+    PAGE_SIZE = 24
+    current_page = 0
+    page_info_text = ft.Text("", size=14, color=ft.Colors.SECONDARY)
+    btn_prev = ft.IconButton(
+        icon=ft.Icons.ARROW_BACK,
+        tooltip="Página anterior",
+        on_click=lambda e: go_page(-1),
+    )
+    btn_next = ft.IconButton(
+        icon=ft.Icons.ARROW_FORWARD,
+        tooltip="Página siguiente",
+        on_click=lambda e: go_page(1),
+    )
+    pagination_row = ft.Row(
+        [btn_prev, page_info_text, btn_next],
+        alignment=ft.MainAxisAlignment.CENTER,
+        visible=False,
+    )
+
     # Mensaje de error
     error_banner = ft.Banner(
         bgcolor=ft.Colors.ERROR_CONTAINER,
@@ -265,8 +286,45 @@ def main(page: ft.Page):
             elevation=3,
         )
 
+    def refresh_grid_for_page():
+        """Rellena el grid con los acordes de la página actual."""
+        nonlocal current_page
+        results_grid.controls.clear()
+        start = current_page * PAGE_SIZE
+        end = min(start + PAGE_SIZE, len(all_chords_list))
+        for chord in all_chords_list[start:end]:
+            card = create_chord_card(chord)
+            results_grid.controls.append(
+                ft.Container(
+                    content=card,
+                    col={
+                        ft.ResponsiveRowBreakpoint.XS: 12,
+                        ft.ResponsiveRowBreakpoint.SM: 6,
+                        ft.ResponsiveRowBreakpoint.MD: 4,
+                        ft.ResponsiveRowBreakpoint.LG: 4,
+                        ft.ResponsiveRowBreakpoint.XL: 3,
+                    },
+                )
+            )
+        total_pages = max(1, (len(all_chords_list) + PAGE_SIZE - 1) // PAGE_SIZE)
+        page_info_text.value = f"Página {current_page + 1} de {total_pages}"
+        btn_prev.disabled = current_page <= 0
+        btn_next.disabled = current_page >= total_pages - 1
+        pagination_row.visible = len(all_chords_list) > 0
+        btn_prev.visible = total_pages > 1
+        btn_next.visible = total_pages > 1
+        page.update()
+
+    def go_page(delta: int):
+        """Cambia de página (delta = -1 anterior, +1 siguiente)."""
+        nonlocal current_page
+        total_pages = max(1, (len(all_chords_list) + PAGE_SIZE - 1) // PAGE_SIZE)
+        current_page = max(0, min(current_page + delta, total_pages - 1))
+        refresh_grid_for_page()
+
     def generate_clicked(e):
         """Maneja el evento de generar acordes."""
+        nonlocal current_page
         loading_indicator.visible = True
         results_count.value = "Buscando..."
         page.update()
@@ -299,30 +357,22 @@ def main(page: ft.Page):
                 max_frets=max_frets,
                 root_filter=root_filter,
                 type_filter=type_filter,
-                limit=10,
+                limit=None,
                 string_fret_filter=string_fret_filter
             )
 
-            results_grid.controls.clear()
-            for chord in chords:
-                card = create_chord_card(chord)
-                results_grid.controls.append(
-                    ft.Container(
-                        content=card,
-                        col={
-                            ft.ResponsiveRowBreakpoint.XS: 12,   # móvil: 1 columna
-                            ft.ResponsiveRowBreakpoint.SM: 6,    # tablet: 2 columnas
-                            ft.ResponsiveRowBreakpoint.MD: 4,    # desktop: 3 columnas
-                            ft.ResponsiveRowBreakpoint.LG: 4,
-                            ft.ResponsiveRowBreakpoint.XL: 3,    # pantalla grande: 4 columnas
-                        },
-                    )
-                )
+            all_chords_list.clear()
+            all_chords_list.extend(chords)
+            current_page = 0
 
             if chords:
                 results_count.value = f"Se encontraron {len(chords)} acordes"
+                refresh_grid_for_page()
             else:
                 results_count.value = "No se encontraron acordes con los filtros seleccionados"
+                results_grid.controls.clear()
+                pagination_row.visible = False
+                page.update()
 
         except ValueError as ex:
             show_error(f"Error de validación: {str(ex)}")
@@ -435,6 +485,7 @@ def main(page: ft.Page):
                     alignment=ft.Alignment.CENTER,
                     margin=ft.Margin.symmetric(vertical=10),
                 ),
+                pagination_row,
 
                 # Resultados
                 ft.Text(

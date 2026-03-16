@@ -282,7 +282,7 @@ def find_chord_positions(
     max_frets: int,
     root: str,
     chord_type: str,
-    limit: int = 10,
+    limit: Optional[int] = None,
     min_fret: int = 0,
     max_fret: Optional[int] = None,
     string_fret_filter: Optional[dict] = None
@@ -357,7 +357,9 @@ def find_chord_positions(
     # Ordenar por facilidad (mayor puntaje primero)
     positions.sort(key=lambda x: x['ease_score'], reverse=True)
     
-    return positions[:limit]
+    if limit is not None:
+        return positions[:limit]
+    return positions
 
 
 def generate_chords(
@@ -365,7 +367,7 @@ def generate_chords(
     max_frets: int,
     root_filter: Optional[str] = None,
     type_filter: Optional[str] = None,
-    limit: int = 10,
+    limit: Optional[int] = None,
     min_fret: int = 0,
     max_fret: Optional[int] = None,
     string_fret_filter: Optional[dict] = None
@@ -405,13 +407,12 @@ def generate_chords(
     
     for root in roots:
         for chord_type in chord_types:
-            # Buscar todas las posiciones posibles para luego ordenar globalmente
             positions = find_chord_positions(
                 tuning_midi,
                 max_frets,
                 root,
                 chord_type,
-                limit=50,  # Buscar más para tener opciones de ordenamiento
+                limit=None,
                 min_fret=min_fret,
                 max_fret=max_fret,
                 string_fret_filter=string_fret_filter
@@ -421,7 +422,9 @@ def generate_chords(
     # Ordenar todos los resultados por facilidad (mayor puntaje primero)
     all_positions.sort(key=lambda x: x['ease_score'], reverse=True)
     
-    return all_positions[:limit]
+    if limit is not None:
+        return all_positions[:limit]
+    return all_positions
 
 
 def get_all_roots() -> list:
